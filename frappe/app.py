@@ -293,6 +293,8 @@ def handle_exception(e):
 		or (frappe.local.request.path.startswith("/api/") and not accept_header.startswith("text"))
 	)
 
+	allow_traceback = frappe.get_system_settings("allow_error_traceback") if frappe.db else False
+
 	if not frappe.session.user:
 		# If session creation fails then user won't be unset. This causes a lot of code that
 		# assumes presence of this to fail. Session creation fails => guest or expired login
@@ -347,12 +349,15 @@ def handle_exception(e):
 	else:
 		traceback = "<pre>" + escape_html(frappe.get_traceback()) + "</pre>"
 		# disable traceback in production if flag is set
-		if frappe.local.flags.disable_traceback and not frappe.local.dev_server:
+		if frappe.local.flags.disable_traceback or not allow_traceback and not frappe.local.dev_server:
 			traceback = ""
-
-		frappe.respond_as_web_page(
-			"Server Error", traceback, http_status_code=http_status_code, indicator_color="red", width=640
-		)
+			frappe.respond_as_web_page(
+				"Server Error", "Opps!. Please don't panic.Please contact your Administrator to resolve the issue", http_status_code=http_status_code, indicator_color="red", width=640
+			)
+		else:
+			frappe.respond_as_web_page(
+				"Server Error", traceback, http_status_code=http_status_code, indicator_color="red", width=640
+			)
 		return_as_message = True
 
 	if e.__class__ == frappe.AuthenticationError:
