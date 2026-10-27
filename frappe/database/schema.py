@@ -122,6 +122,12 @@ class DBTable:
 					_("Fieldname is limited to 64 characters ({0})").format(frappe.bold(col.fieldname))
 				)
 
+			# updatedb only alters columns derived from DocFields. Standard
+			# columns (name/owner/parent...) are not modified by alter(), so
+			# avoid the expensive MAX(CHAR_LENGTH()) scan for them.
+			if col.fieldname not in self.columns:
+				continue
+
 			if "varchar" in frappe.db.type_map.get(col.fieldtype, ()):
 
 				# validate length range
